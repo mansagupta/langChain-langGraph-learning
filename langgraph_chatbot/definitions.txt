@@ -1,0 +1,8 @@
+Streaming - In LLMs, streaming means the model starts sending tokens(words) as soon as they're generated, instead of waiting for the entire response to be ready before returning it.
+
+- faster response time
+- mimics human like convo
+- important for multi-model UIs
+- better UX for long output such as code
+- you can cancel midway serving tokens
+- you can interleave UI updates e.g, show "thinking..."

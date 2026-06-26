@@ -1,0 +1,3 @@
+1. Use TypeDict if: only need type hints, don't need validation, trust the LLM, in only python environment
+2. Use Pydantic if: need data validation, default values, automatic type conversion, in only python environment
+3. Use JSON schema if: don't want to import extra python libraries, need validation but not pythin objects, define structure in standard JSON format, cross language compatibility

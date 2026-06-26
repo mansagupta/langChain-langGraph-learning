@@ -1,0 +1,182 @@
+RAG - is a technique that combines information retrieval with language generation, where a model retrieves relevent documents form a knowledge base and then uses them as context generate accurate and grounded responses.
+
+1.Document Loaders - components used to load data from various sources into a standardized format, which can be used for chunking, embedding, retrieval and generation.
+
+2.Text Spiltters - is a process of breaking large chunks of text into smaller, manageable pieces that an LLM can handle effectively.
+
+Splitting allows us to process documents that would otherwise exceed these limits and also improves every LLM powered tasks such as embedding, semantic search, summarization.
+
+3.Vector Store - is a system designed to store and retreive data represented as numerical vectors. 
+
+Storage - It ensures that vectors and their associated metadata are retained whether in-memory for quick loopkups or on-disk for durability and large scale use. 
+
+Similarity search - helps retrieve the vectors most similar to a query vectors.
+
+Indexing - provide data structure or method that enables fast Similarity seraches on high dimentional vectors.
+
+CRUD operation - manage the lifecycle of data - adding new vectors, reading them, updating existing, removing outdated vectors.
+
+Vector Store vs Vector Database -  Store refers to as lightweight library or system that focuses on storing and performing semantic search where as database is s full fiedged database system designed to store and query vectors. Offers additional database-like features such as distributed architechture for hotizontal scaling, durability and persistence, metadata handling, authentication/authorization and more advanced security.
+
+4.Retrievers - component in langchain that fetches relevent documents from a data source in response to a user's query.
+
+Wikipedia retriever - that queries the Wikipedia Api to fetch relevent content for a given query, it returns Langchain documents.
+
+Vector Store retriever - is a most common type of retriever that lets you search and fetch documents from a vector store based on semantic Similarity using vector embeddings.
+
+Maximal Marginal Relevence(MMR) - is an information retrieval algorithm designed to reduce redundancy in the retrieved results while maintaining high relevance to the query. It picks the most relevent and least similar to already selected docs, makes it diverse but relevent.
+
+    retriever = vectorstore.as_retriever(
+        search_type="mmr", this is MMR
+        search_kwargs={"k": 3, "lambda_mult": 1}  k = top results and lambda_mult = Relevence-diversity balance ranges from 0 to 1.
+    )
+
+Multi-Query retriever - it takes original query uses an LLM to generate multiple semantically different versions of the query then perform retrieval for each sub query, combines and deduplicates the results then show the output.
+
+Contextual Compression Retriever - is an advanced retriever that improves retrieval quality by compressing documents after retrival. It keeps only the relevent content based on the user's query.
+
+HOW TO IMPROVE A PRODUCTION BASED RAG SYSTEM: 
+
+1. UI based enhancements
+
+2. Evaluation : Ragas, LangSmith (faithfulness, answer relevency, context precision, context recall)
+
+3. Indexing : Document Ingestion (use translator, or remove extra bits), Text Splitting (use relevent splitter), Vector Store (use cloud based stores)
+
+4. Retrieval : Pre-retrieval (Quaery rewriting using LLM, Multi-query generation, Domain aware routing)
+During retrieval (MMR, Hybrid retrieval, Reranking)
+Post-retrieval (Contextual Compression)
+
+5. Augmentation : Prompt templating, Answer grounding, Context Window optimization
+
+6. Generation: Answer with Citation, Guard railing
+
+7. System Design : Multimodel, Agentic, Memory based
+
+
+What is a Tool : A tool is just a python function (or API) that is packaged in a way the LLM can understand and call when needed. 
+
+How tools fits into the agent ecosystem: An AI agent is an LLM - powered system that can autonomously think, decide, and actions using external tools or APIs to achieve a goal.
+
+A built-in tool that LangChain already provides for you - it's pre-built, production-ready, and requires minimal or no setup. 
+Ex - DuckDuckGoSearchRun, WikipediaQueryRun, PythonREPLTool, ShellTool, RequestsGetTool etc.
+
+Custom Tool - is a tool that you define yourself when you want to call your APIs, encapsulate business logic, want the LLM to interact with your database, product or app.
+
+@tool  # decorator
+def multiply(a: int, b: int) -> int: # type hinting
+    """Multiply two numbers"""   # makes it easy to understand byt the LLM
+    return a*balance
+
+result = multiply.invoke({"a": 3, "b": 5}) 
+
+other attributes of tool are: multiply.name, multiply.description, multiply.args.
+
+Ways to create tools : using @tool decorator, using StrcuturedTool and Pydantic, using BaseTool class etc.
+
+A StrcuturedTool in LangChain is a Special type of tool where the input to the tool follows a strcutured schema, typically defined using a Pydantic model.
+
+class MultiplyInput(BaseModel):
+    a: int = Field(required = True, description = "The First number to add")
+    b: int = Field(required = True, description = "The second number to add")
+
+def multiply_func( a, b):
+    return a*b    
+
+multiply_tool = StrcuturedTool.from_function(
+    func= multiply_func,
+    name= "multiply",
+    description= "Multiply Two Numbers",
+    args_schema= MultiplyInput
+)  
+
+result = multiply_tool.invoke({"a": 3, "b": 4})
+
+BaseTool is a abstract base class for all tools in LangChain, it defines the core strcuture and interface that any tool must follow, whether it's simple one-liner or a fully customized function.
+
+All other tool types like @tool, StrcuturedTool are build on top of BaseTool.
+
+class MultiplyInput(BaseModel):
+    a: int = Field(required = True, description = "The First number to add")
+    b: int = Field(required = True, description = "The second number to add")
+
+class MultiplyTool(BaseTool):
+    name: str = "multiply"
+    description: str = "Multiply two numbers"
+    args_schema: Type[BaseModel] = MultiplyInput   
+
+    def _run(self, a: int, b: int) -> int:
+        return a*b 
+
+multiply_tool = MultiplyTool()
+
+result = multiply_tool.invoke({'a': 3, 'b': 5})
+
+Toolkits - A toolkit is just a collection of related tools that serve a common purpose packaged together for convenience and reusability.
+
+@tool
+def add(a: int, b: int) -> int:
+    """Add two numbers"""
+    return a+b
+
+@tool
+def multiply(a: int, b: int) -> int:
+    """Multiply two numbers"""
+    return a*b 
+
+class MathToolKit:
+    def get_tools(self):
+        return [add, multiply]    
+
+toolkit = MathToolKit()
+tools = toolkit.get_tools()
+
+Tool Binding - is the step where you register tools with a language Model (LLM) so that:
+1. LLM knows available tools
+2. what each tools does
+3. what input format to use (via schema)
+
+@tool
+def multiply(a: int, b: int) -> int:
+    """Multiply two numbers"""
+    return a*b
+
+llm = ChatOpenAI()
+
+llm_with_tools = llm.bind_tools([multiply])
+
+Tool Calling - is the process where the llm decides, during a conversation or task, that it needs to use a specific tool and generates a strcutured output with: name of the tool and the arguments to call it with
+
+llm_with_tools.invoke('Can you multiply 3 with 10').tool_calls[0]
+
+{
+    'name': 'multiply',
+    'args': {'a': 3, 'b': 10},
+    'id': 'bdhegdhfwdiw',
+    'type': 'tool_call'
+}
+
+The LLM does not actually run the tool, it just suggests the tool and the input arguments. The input execution is handled by LangChain or you.
+
+Tool Execution - is the step where the actual python function (tool) is run using the input arguments that the LLM suggested during tool calling.
+
+result = llm_with_tools.invoke('Can you multiply 3 with 10')
+
+multiply.invoke(result.tool_calls[0]) --> ToolMessage(content='30', name='multiply', tool_call_id='call_dbehfhrfkjk')
+
+query = HumanMessage('Can you multiply 3 with 10')
+messages = [query]
+
+result = llm_with_tools.invoke(messages)
+
+messages.append(result)
+
+tool_result = multiply.invoke(result.tool_calls[0])
+
+messages.append(tool_result)
+llm_with_tools.invoke(messages).content --> The product of 3 and 10 is 30.
+
+
+
+
+

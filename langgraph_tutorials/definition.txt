@@ -1,0 +1,82 @@
+AI Agent - is an intelligent system that receives a high-level goal from a user and autonomously plans, decides, and executes a sequence of actions by using external tools, APIs, or knowledge sources - all while maintaning context, reasoning over multiple steps, adapting to new information, and optimizing for the intended outcome.
+
+AI agents : Goal-driven, Autonomous planning, Tool-using, Context-aware, Adaptive
+
+ReAct - is a design pattern used in AI agents that stands for Reasoning + Acting. It allows a language model (LLM) to interleave internal reasoning with external actions in a structured, multi-step process.
+
+Agent and Agent Executor - AgentExecutor orchestrates the entire loop :
+1. sends input and previous messages to the agents
+2. gets the next action from agents
+3. executes that tool with provided input
+4. adds the tools observation back into the history
+5. loops again with updated history until the agent says final answer.
+
+Creating an Agent - agent = create_react_agent(
+    llm = llm, # llm used for reasoning
+    tools= [search_tool], # add all the tools available
+    prompt = prompt   # use langchain hub to get already built and tested prompts
+)
+
+Creating an Agent Executor - agent_executor = AgentExecutor(
+    agent = agent, # agent object after agent creation
+    tools = [search_tool], # tools same as the agent
+    verbose = True
+)
+
+Agents responses - 1. AgentAction(
+    tool = "search_tool",
+    tool_inputs = "population od paris"
+    log=""  # scratchpad of agent
+)
+
+2. AgentFinish(
+    return_value={"output": ""},
+    log = ""
+)
+
+Autonomy - refers to the AI system's ability to make decisions and take actions on its own to acheive a given goal, without needing step-by-step human instruction.
+
+1. Out AI recruiter is autonomous
+2. It's proactive
+3. Autonomy in multiple facets
+4. Autonomy can be controlled : permission scope - Limit what tools or actions the agent can perform independently.
+Human-in-the-loop(HITL) - insert checkpoints where human approval is required before continuing.
+Override Controls - Allow users to stop, pause, or change the agent's behaviour at any time.
+Guardrails/ Policies - Define hard rules or ethical boundaries the agent must follow.
+
+Planning - is a agent's ability to break down a high-level goal into structured sequence of actions or subgoals and decide the best path to acheive the desired outcome.
+
+Components - Brain, Orchestrator, Tools, Memory, Supervisor
+
+LangGraph- is an orchestration framework for building intelligent, stateful, and multistep LLM workflows.
+
+It enables advanced features like parallelism, loops, branching, memory, and resumability - making it ideal for agentic and production-grade AI applications.
+
+It models your logic as a graph of nodes(tasks) and edges(routing) instead of a linear chain.
+
+LLM workflows are a step-by-step process using which we can use to build complex LLM applications.
+
+Graphs, Nodes, and Edges - Workflow in langGraph is represented as a Graph where each task is represented as Node and the flow of execution is represented by Edges.
+
+State - is the shared memory that flows through you workflow , it holds all the data being passed between nodes as your graph runs. It evolves as the flow runs.
+
+Reducers - it defines how updates from nodes are applied to the shared state.
+Each key in the state can have its own reducer, which determines whether new data replaces, merges, or adds to the existing value.
+
+LangGraph Execution model - 1. Graph definition (state schema, nodes, edges)
+			    2. Compilation (call .compile())
+			    3. Invocation (run the graph with .invoke(initial_state))
+			    4. Super steps begin (active nodes run in parallel)
+			    5. Message Passing and Node Activation 
+			    6. Halting condition
+
+Persistence - in langchain refers to the ability to save and restore the state of a workflow over time. Results in Fault Tolerence.          
+
+Checkpointers in persistence - every superstep has its own checkpoint which stores the state on that step.
+
+Threads in persistenece - in every workflow execution, a thread id is provided which acts as a key to fetch the required state or values.
+
+Benefits of persistence - 1. Shortterm memory
+                          2. Fault Tolerence
+                          3. Human in the Loop
+                          4. 

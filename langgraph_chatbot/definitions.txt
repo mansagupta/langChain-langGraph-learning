@@ -6,3 +6,33 @@ Streaming - In LLMs, streaming means the model starts sending tokens(words) as s
 - better UX for long output such as code
 - you can cancel midway serving tokens
 - you can interleave UI updates e.g, show "thinking..."
+
+MCP - Context is everything an AI can "see" when it generates a response. It refers to the information that the LLM uses to generate a response. For e.g. while chatting with ChatGPT, the past messages froms the context.
+
+model (MCP Client SDK) --------------------> tool (MCP Server SDK)
+
+(e.g. ChatGPT) client --------------------> server (e.g. github)
+(e.g. ChatGPT) client --------------------> server (e.g. google drive)
+(e.g. ChatGPT) client --------------------> server (e.g. slack) (one on one relationship)
+
+    Benefits - 1. no maintenance overhead
+               2. reduced cost and time
+               3. N clients and M servers = M + N integrations
+               4. better security
+
+Architecture - 
+    Host (Custom chatbot or claude/gemini/etc) --------------> server (github/slack/drive/etc)      
+     ___________________
+    |           client  | ---------> server
+    |Host       client  | ---------> server
+    |___________client__| ---------> server
+
+    Primitives - things the server can offer to host which are tools, prompts, and resources.
+
+    Tool - actions the AI ask the server to perform.
+    Resources - structured data sources that the AI can read
+    Prompts - predefined prompt templates or instructions that the server offers to help shape the AI's behavior.
+
+    
+            
+

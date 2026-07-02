@@ -30,9 +30,105 @@ Architecture -
     Primitives - things the server can offer to host which are tools, prompts, and resources.
 
     Tool - actions the AI ask the server to perform.
-    Resources - structured data sources that the AI can read
+
+    Resources - structured data sources that the AI can read.
+
     Prompts - predefined prompt templates or instructions that the server offers to help shape the AI's behavior.
 
-    
-            
+    Primitives - Standard Operations -
 
+    tools/list : client asks the server - "What tools do you provide?"
+    tools/call : client tells the server - "Please run this tool with these arguments."
+    resources/list : Client asks - "What resources are available?"
+    recources/read : client says - "Give me the cntent of this resource."
+    resource/subscribe/unsubscribe : client subscribes or unsubscribe from updates.
+    prompts/list : client asks - "What prompt templates do you provide?"
+    prompts/get : client fetches a specific prompt template.
+
+MCP Data Layer - is the language and grammer of the MCP ecosystem that everyone agrees upon to communicate. JSON RPC 2.0 serves as the foundation of data layer.
+
+JSON-RPC : stands for JavaScript Object Notation - Remote Procedure Call. A RPC allows a program to execute a function on another computer as if it were local, hiding the details of network communication and data transfer. This abstraction makes it easier to build distributed applications. JSON-RPC combines the the concept of RPC with the simplicity of JSON, allowing developers to structure RPC requests and responses in a standardized JSON format.
+
+Example request structure : {
+    "jsonrpc": "2.0",
+    "method": "add",
+    "params": [2, 3],
+    "id": 1
+}
+
+Why JSON RPC for Data Layer and not REST APIs- 
+1. Its lightweight which means it does not have any extra header and metadata.
+2. Supports bi-directional communication.
+3. It is transport-agnostic which means it can work with https, stdio, websockets or any custom written transport etc.
+4. It supports batching.
+5. It supports notification.
+
+MCP Transport Layer : is the mechanism that moves JSON-RPC messages b/w the Client and Server.
+The choice of transport depends on the type of server.
+There are two types of MCP servers which are Remote and Local.
+A local server is a program running on your own computer. (STDIO)
+A remote server is a program running on another computer that you connect to over a network. (HTTP/SSE)
+            
+STDIO - Standard input output refers to the built-in streams every program has. The host launches the server as a subprocess on the same machine.
+
+The host(client) writes JSON-RPC messages into the server's STDIN.
+The server reads those messages, processes them, and writes back responses to it's STDOUT. Benefits are Fast, secure and simple.
+
+HTTP + SSE - Using http allows the host to reach servers rinning anywhere. Host sends JSON RPC requests using POST requests with JSON payload.
+
+SSE stands for Server Sent Events, and it's an extension of HTTP. Using SSE the server sends multiple messages to client over a single open connection. Instead of sending one large JOSN blob, the server can stream chunks of data as they are ready. Ideal for long running tasks or incremental updates.
+
+MCP Lifecycle - describes the complete sequence of steps that govern how a Host (client) and a server establish, use, and end a connection during a session. Stages are Initialization, Operation and Shut Down.
+
+The initialization phase MUST be the first interaction b/w client and server. Establish protocol version compatibility.
+Exchange and negotiate capabiloties. 
+1. The Client sends a JSON-RPC initialize request containing fields like jsonrpc, id, method, params (protocolVersion, capabilities), clientInfo etc.
+2. The Server sends its own capabilities and info.
+3. After successful initialization, the client MUST send an initialized notification to indicate it is ready to begin normal operation.  
+NOTE - the client SHOULD NOT send requests other than pings before the server has responded to the initialize request. The server SHOULD NOT send requests other than pings and logging before receiving the initialized notification.
+
+During the Operation phase, the client and server exchange messages according to the negatiated capabilities. Respect the negotiated protocol version. Only use capabilities that were successfully negotiated.
+1. Capability discovery (which is usually done automatically after successful initialization)
+2. tool calling/ resource calling
+
+During Shutdown, typically the client initiates shutdown. No special JSON-RPC shutdown message is defined. Transport layer is responsible for signaling termination.
+
+In STDIO, client initiated shutdown, client closes the input stream to the servers process then waits for server to exit, send SIGTERM if server does not exit in time, send SIGKILL if server still stays unresponsive.
+Server initiated shutdown, close output stream to the client then exit process.
+
+In HTTP, client initiated shutdown, the client closes the HTTP connections id opened to the server.
+Server initiated shutdown, the server may close the connection from its side, the client must be prepared to detect a deopped connection and handle it.
+
+Pings: is a lightweight request/response method defined in MCP. Purpose is to check whether the other side (Host or server) is still alive and the connection is responsive.
+
+Error Handling - Error handling in MCP is how the host and server signal that something went wrong with a request.
+MCP inherits JOSN-RPC's standard error object format.
+Causes of Error - 1. unsupported or mismatched protocol version.
+2. internal server failure while processing a request.
+3. calling a method for a capability that wasn't negotiated.
+4. timeout exceeded, client cancels request.
+5. invalid arguments to a tools. 
+6. malformed JSON-RPC messages.
+Error Object Structure : {
+    "jsonrpc": "",
+    "id": ,
+    "error": {
+        "code": ,
+        "message": "",
+        "data": { "extra": ""}
+    }
+}
+Common Error Codes - 1. -32601: method not found
+2. -32602: Invalid params
+3. -32600: invalid request
+4. -32700: parse error
+5. -32000 and above: server-defined errors
+
+Timeout - is about ensuring requests don't hand forever. Protects against unresponsive or overloaded servers.
+Ensures resources arn't held indefinitely. Gives the user feedback instead of waiting forever.
+How Timeout works - 1. SDKs let client set a per-request timeout.
+2. If the dealine passes with no result, client triggers a timeout.
+3. Client then sends  a cancellation notification to tell the server to stop.
+4. The server must stop processing that request and not return a request.
+
+Progress Notification - Let the client know that a long-running request is still making progress. client includes a progressToken in the request's _meta. Server can then send notifications/progress updates while working.

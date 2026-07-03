@@ -132,3 +132,10 @@ How Timeout works - 1. SDKs let client set a per-request timeout.
 4. The server must stop processing that request and not return a request.
 
 Progress Notification - Let the client know that a long-running request is still making progress. client includes a progressToken in the request's _meta. Server can then send notifications/progress updates while working.
+
+Type of Connections - 1. using config fields
+2. using connectors
+
+A connector is a built-in feature that links Claude to MCP servers automatically, without the need for manual setup or configuration.
+Most Claude Desktop users are nontechnical endusers who just want claude to "talk" to their apps. The connector system wraps an MCP server behind the scenes and handles authentication via OAuth. This keeps things easy, safe, and consistent.
+
